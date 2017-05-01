@@ -1,18 +1,12 @@
-import sys
 import os
-import numpy as np
 import pandas as pd
-import numpy as np
-import gensim
 import csv
 from siamese import *
-from keras.optimizers import RMSprop, SGD, Adam
+from keras.optimizers import Adam
 from tqdm import tqdm
-from utils import TfidfEmbeddingVectorizer
 import gensim
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 global dim
-dim = 300
 
 class MySentences(object):
     def __init__(self, dirname):
@@ -226,9 +220,9 @@ def main():
 
 if __name__ == "__main__":
     global dim
-    numberofdim=input('number of dimentions: Recommended 300 time taken approx time taken ~2')
+    numberofdim=input('number of dimentions: Recommended size 300,approx time taken 2 mins')
     dim=numberofdim
-    methodtouse = input('press 1 for word2vec 2 for doc2vec')
+    methodtouse = input('method to be used : press 1 for word2vec 2 for doc2vec')
     w2v_d2v=None
 
     if methodtouse ==1:

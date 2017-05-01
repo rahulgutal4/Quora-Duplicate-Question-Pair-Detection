@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas
 import re
+import numpy as np
 
 def graphComparison(allinputValues):
     for inputValues in allinputValues:
@@ -31,14 +32,24 @@ def graphComparison(allinputValues):
                     accuracy['10+p']=accuracy['10+p']+1
                 else:
                     accuracy['10+i'] = accuracy['10+i'] + 1
-        plt.figure()
-        plt.hist([accuracy['10-p'], accuracy['10-i'],accuracy['10+p'],accuracy['10+i']])
-        plt.ylabel('predictions')
-        plt.show()
+
+        X = np.arange(2)
+        t=[1,1]
+        p=[float(accuracy['10-p'])/(accuracy['10-p']+accuracy['10-i']),float(accuracy['10+p'])/(accuracy['10+p']+accuracy['10+i'])]
+        plt.bar(X,t, align='center', width=0.5,color=['red', 'red'])
+        plt.bar(X,p , align='center', width=0.5,color=['blue', 'blue'])
+        plt.xticks(X,["10-","10+"])
+        ymax = max(t) + 0.1
+        plt.ylim(0, ymax)
+        print accuracy
+
+    plt.ylabel('predictions')
+    plt.ylabel('positive and negative')
+    plt.show()
 
 
 data1=pandas.read_csv('test/output_test.csv',sep="\t")
-data2=pandas.read_csv('test/output_test.csv',sep="\t")
+#data2=pandas.read_csv('test/output_test.csv',sep="\t")
 #data2=pandas.read_csv('data/output/output100.csv')
 #data3=pandas.read_csv('data/output/output100.csv')
 data=[data1]
