@@ -204,7 +204,7 @@ def main():
     
     rows = zip(df[num_train:]['question1'], df[num_train:]['question2'], df[num_train:]['is_duplicate'], pred)
     res = pd.DataFrame(data=rows)
-    res.to_csv(path_or_buf='test/output_test.csv', sep='\t', encoding='utf-8')
+    res.to_csv(path_or_buf='test/output_test_'+dim+'.csv', sep='\t', encoding='utf-8')
     
     # format data 
     b = [a[None,:] for a in list(dft['q1_feats'].values)]
