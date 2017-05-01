@@ -120,7 +120,7 @@ def transformVectors(w2v, df, dft, path):
     dft['q2_feats'] = list(vecs2)
     return df, dft
 
-def main(w2v,path,val):
+def main(path,val):
 
     df = pd.read_csv("data/quora_duplicate_questions.tsv",delimiter='\t')
     dft = pd.read_csv("test/test.csv", delimiter=',')
@@ -130,12 +130,14 @@ def main(w2v,path,val):
     df['question2'] = df['question2'].apply(lambda x: unicode(str(x),"utf-8"))
     dft['question1'] = dft['question1'].apply(lambda x: unicode(str(x),"utf-8"))
     dft['question2'] = dft['question2'].apply(lambda x: unicode(str(x),"utf-8"))
+    w2v_d2v=None
+
     if val==1:
         w2v_d2v = word2vec(path)
     else:
         w2v_d2v=doc2vec(df,dft,path)
 
-    df, dft = transformVectors(w2v, df, dft, path)
+    df, dft = transformVectors(w2v_d2v, df, dft, path)
 
     ##############################################################################
     # CREATE TRAIN DATA
@@ -222,7 +224,6 @@ if __name__ == "__main__":
     numberofdim=input('number of dimentions: Recommended size 300,approx time taken 2 mins')
     dim=numberofdim
     methodtouse = input('method to be used : press 1 for word2vec 2 for doc2vec')
-    w2v_d2v=None
     path = 'models'
     val=0
     if methodtouse ==1:
@@ -231,4 +232,4 @@ if __name__ == "__main__":
     else:
         path=path+'/d2v_vectors' + str(dim)
         val=2
-    main(w2v_d2v,path,val)
+    main(path,val)
