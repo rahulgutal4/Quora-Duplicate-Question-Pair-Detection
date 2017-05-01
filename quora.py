@@ -23,12 +23,6 @@ class MySentences(object):
                 line = unicode(str(line),"utf-8")
                 yield line.split()
                 
-class LabeledLineSentence(object):
-    def __init__(self, filename):
-        self.filename = filename
-    def __iter__(self):
-        for uid, line in enumerate(open(filename)):
-            yield LabeledSentence(words=line.split(), labels=['SENT_%s' % uid])
 
 def generateLabelledSentences(data, label):
     i=0
@@ -145,13 +139,14 @@ def main():
     dft['question1'] = dft['question1'].apply(lambda x: unicode(str(x),"utf-8"))
     dft['question2'] = dft['question2'].apply(lambda x: unicode(str(x),"utf-8"))
 
-    w2v = word2vec()
-    #w2v = doc2vec(df, dft)
+    val=input("press 1 for word2vec and 2 for doc2vec\n")
+    if val==1:
+        w2v = word2vec()
+    else:
+        w2v = doc2vec(df, dft)
     path = 'models/w2v_vectors' + str(dim)
     df, dft = transformVectors(w2v, df, dft, path)
-    ##############################################################################
-    # CREATE TRAIN DATA
-    ##############################################################################
+
     # shuffle df
     df = df.reindex(np.random.permutation(df.index))
 
@@ -187,20 +182,6 @@ def main():
     del q1_feats
     del q2_feats
 
-    # preprocess data, mean center unit std
-    #from sklearn.preprocessing import normalize
-    #X_train_norm = np.zeros_like(X_train)
-    #X_train_norm[:,0,:] = normalize(X_train[:,0,:], axis=0)
-    #X_train_norm[:,1,:] = normalize(X_train[:,1,:], axis=0)
-    #X_test_norm = np.zeros_like(X_test)
-    #X_test_norm[:,0,:] = normalize(X_test[:,0,:], axis=0)
-    #X_test_norm[:,1,:] = normalize(X_test[:,1,:], axis=0)
-
-    ##############################################################################
-    # TRAIN MODEL
-    # 3 layers resnet (before relu) + adam + layer concat : 0.68
-    # 3 layers resnet (before relu) + adam + layer concat + 20 negative sampling: ?
-    ##############################################################################           
     # create model
     print 'siamese model'
     net = create_network(dim)
@@ -244,4 +225,6 @@ def main():
             writer.writerow(row)
         
 if __name__ == "__main__":
-    main()   
+    global dim
+    dim=input("Enter no. of Dimentions (Recommended:300 approximate time taken 2mins)\n")
+    main()
