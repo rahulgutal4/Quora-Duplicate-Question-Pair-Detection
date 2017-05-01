@@ -34,7 +34,7 @@ def generateLabelledSentences(data, label):
     i=0
     labelledData = []
     for line in data:
-        labelledData.append(LabeledSentence(words=line, tags=[label+str(i)]))
+        labelledData.append(gensim.models.doc2vec.LabeledSentence(words=line, tags=[label+str(i)]))
         i+=1
     return labelledData    
                 
@@ -66,19 +66,19 @@ def word2vec():
     print "Number of tokens in Word2Vec:", len(w2v.keys())
     return w2v
 
-def doc2vec():
+def doc2vec(df, dft):
 
     model = None
     path = 'models/d2v_model' + str(dim)
     if os.path.exists(path):
-        model = gensim.models.word2vec.Doc2Vec.load(path)
+        model = gensim.models.Doc2Vec.load(path)
         # trim memory
         model.init_sims(replace=True)
     else:
         # train model
         model = gensim.models.Doc2Vec(size=dim, workers=16, iter=10, negative=20)
-        questions = generateLabelledSentences(df['question1'], 'question1') + generateLabelledSentences(df['question2'], 'question2') 
-        + generateLabelledSentences(dft['question1'], 't_question1')    +generateLabelledSentences(dft['question2'], 't_question2')
+        questions = list(generateLabelledSentences(df['question1'], 'question1')) + list(generateLabelledSentences(df['question2'], 'question2')) 
+        #+ list(generateLabelledSentences(dft['question1'], 't_question1'))  +  list(generateLabelledSentences(dft['question2'], 't_question2'))
         model.build_vocab(questions)
         model.train(questions)
         # trim memory
@@ -87,19 +87,18 @@ def doc2vec():
         model.save(path)
         del questions
     
-    questions = MySentences('test/')
+    questions = list(generateLabelledSentences(dft['question1'], 'question1')) + list(generateLabelledSentences(dft['question2'], 'question2')) 
     model.build_vocab(questions, update = True)
     model.train(questions)
     # creta a dict 
-    w2v = dict(zip(model.index2word, model.syn0))
-    print "Number of tokens in Word2Vec:", len(w2v.keys())
-    return w2v
-    
+    d2v = dict(zip(model.index2word, model.syn0))
+    print "Number of tokens in Word2Vec:", len(d2v.keys())
+    return d2v
 
-def transformVectors(w2v, df, dft):
+def transformVectors(w2v, df, dft, path):
 
     from utils import TfidfEmbeddingVectorizer
-    path = 'models/w2v_vectors' + str(dim)
+
     if os.path.exists(path):
         df = pd.read_pickle(path)
     else:
@@ -147,7 +146,9 @@ def main():
     dft['question2'] = dft['question2'].apply(lambda x: unicode(str(x),"utf-8"))
 
     w2v = word2vec()
-    df, dft = transformVectors(w2v, df, dft)
+    #w2v = doc2vec(df, dft)
+    path = 'models/w2v_vectors' + str(dim)
+    df, dft = transformVectors(w2v, df, dft, path)
     
     ##############################################################################
     # CREATE TRAIN DATA
@@ -182,7 +183,7 @@ def main():
     X_test[:,0,:] = q1_feats[num_train:]
     X_test[:,1,:] = q2_feats[num_train:]
     Y_test = df[num_train:]['is_duplicate'].values
-
+    
     del b
     del q1_feats
     del q2_feats
@@ -210,7 +211,7 @@ def main():
     optimizer = Adam(lr=0.001)
     net.compile(loss=contrastive_loss, optimizer=optimizer)
 
-    for epoch in range(10):
+    for epoch in range(1):
         net.fit([X_train[:,0,:], X_train[:,1,:]], Y_train,
               validation_data=([X_test[:,0,:], X_test[:,1,:]], Y_test),
               batch_size=128, nb_epoch=1, shuffle=True)
@@ -220,7 +221,11 @@ def main():
         te_acc = compute_accuracy(pred, Y_test)
     
         print('* Accuracy on test set: %0.2f%%' % (100 * te_acc))
-
+    
+    rows = zip(df[num_train:]['question1'], df[num_train:]['question2'], df[num_train:]['is_duplicate'], pred)
+    res = pd.DataFrame(data=rows)
+    res.to_csv(path_or_buf='test/output_test.csv', sep='\t', encoding='utf-8')
+    
     # format data 
     b = [a[None,:] for a in list(dft['q1_feats'].values)]
     q1_feats = np.concatenate(b, axis=0)
@@ -234,7 +239,7 @@ def main():
 
     pred = net.predict([X_test[:,0,:], X_test[:,1,:]])
     rows = zip(dft['question1'], dft['question2'], pred)
-    with open('data/output.csv','wb') as f:
+    with open('test/output.csv','wb') as f:
         writer = csv.writer(f)
         for row in rows:
             writer.writerow(row)
