@@ -11,4 +11,4 @@ vs statements with less than 10 words predicted accurately
 the general trend suggests 10+ words in a statements have better accuracy
 
 We have created some pre trained models and kept at location: https://drive.google.com/open?id=0B2BWdKNWyHpNY2JpZlBmTlp0ZjQ
-you will need to provide either 100,200 as dim and use method word2vec
+you will need to provide either 100,200 and 300 as dim and use method word2vec

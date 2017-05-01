@@ -83,7 +83,7 @@ def doc2vec(df, dft):
     
     questions = list(generateLabelledSentences(dft['question1'], 't_question1')) + list(generateLabelledSentences(dft['question2'], 't_question2')) 
     model.build_vocab(questions, update = True)
-    model.train(questions)
+    #model.train(questions)
     # creta a dict 
     d2v = dict(zip(model.index2word, model.syn0))
     print "Number of tokens in Word2Vec:", len(d2v.keys())
@@ -226,5 +226,5 @@ def main():
         
 if __name__ == "__main__":
     global dim
-    dim=input("Enter no. of Dimentions (Recommended:300 approximate time taken 2mins)\n")
+    dim=input("Enter no. of Dimensions (Recommended:300 approximate time taken 2 mins)\n")
     main()

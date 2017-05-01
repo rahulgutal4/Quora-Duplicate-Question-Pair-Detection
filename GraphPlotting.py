@@ -46,9 +46,9 @@ def graphComparison(allinputValues):
         plt.ylabel('positive and negative')
         plt.show()
 
-#data1=pandas.read_csv('test/output_test_300.csv',sep="\t")
-data1=pandas.read_csv('test/output_test_100.csv',sep="\t")
+data1=pandas.read_csv('test/output_test_300.csv',sep="\t")
+data2=pandas.read_csv('test/output_test_100.csv',sep="\t")
 #data2=pandas.read_csv('data/output/output100.csv')
 #data3=pandas.read_csv('data/output/output100.csv')
-data=[data1]
+data=[data1,data2]
 graphComparison(data)
