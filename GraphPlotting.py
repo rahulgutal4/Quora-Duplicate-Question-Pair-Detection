@@ -34,20 +34,20 @@ def graphComparison(allinputValues):
                     accuracy['10+i'] = accuracy['10+i'] + 1
 
         X = np.arange(2)
-        t=[1,1]
-        p=[float(accuracy['10-p'])/(accuracy['10-p']+accuracy['10-i']),float(accuracy['10+p'])/(accuracy['10+p']+accuracy['10+i'])]
+        t=[accuracy['10-p']+accuracy['10-i'],accuracy['10+p']+accuracy['10+i']]
+        p=[float(accuracy['10-p']),float(accuracy['10+p'])]
         plt.bar(X,t, align='center', width=0.5,color=['red', 'red'])
         plt.bar(X,p , align='center', width=0.5,color=['blue', 'blue'])
         plt.xticks(X,["10-","10+"])
-        ymax = max(t) + 0.1
+        ymax = max(t) + 1000
         plt.ylim(0, ymax)
         print accuracy
         plt.ylabel('predictions')
         plt.ylabel('positive and negative')
         plt.show()
 
-data1=pandas.read_csv('test/output_test.csv',sep="\t")
-#data2=pandas.read_csv('test/output_test_300.csv',sep="\t")
+#data1=pandas.read_csv('test/output_test_300.csv',sep="\t")
+data1=pandas.read_csv('test/output_test_100.csv',sep="\t")
 #data2=pandas.read_csv('data/output/output100.csv')
 #data3=pandas.read_csv('data/output/output100.csv')
 data=[data1]
