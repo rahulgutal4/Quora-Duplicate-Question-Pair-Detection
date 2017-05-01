@@ -1,18 +1,15 @@
-import sys
 import os
-import numpy as np
 import pandas as pd
-import numpy as np
-import gensim
 import csv
+from gensim.models.doc2vec import LabeledSentence
 from siamese import *
 from keras.optimizers import RMSprop, SGD, Adam
 from tqdm import tqdm
-from utils import TfidfEmbeddingVectorizer
 import gensim
+from utils import TfidfEmbeddingVectorizer
+
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 global dim
-dim = 300
 
 class MySentences(object):
     def __init__(self, dirname):
@@ -23,18 +20,11 @@ class MySentences(object):
                 line = unicode(str(line),"utf-8")
                 yield line.split()
                 
-class LabeledLineSentence(object):
-    def __init__(self, filename):
-        self.filename = filename
-    def __iter__(self):
-        for uid, line in enumerate(open(filename)):
-            yield LabeledSentence(words=line.split(), labels=['SENT_%s' % uid])
-
 def generateLabelledSentences(data, label):
     i=0
     labelledData = []
     for line in data:
-        labelledData.append(gensim.models.doc2vec.LabeledSentence(words=line, tags=[label+str(i)]))
+        labelledData.append(LabeledSentence(words=line, tags=[label+str(i)]))
         i+=1
     return labelledData    
                 
@@ -66,60 +56,28 @@ def word2vec():
     print "Number of tokens in Word2Vec:", len(w2v.keys())
     return w2v
 
-def doc2vec(df, dft):
 
-    model = None
-    path = 'models/d2v_model' + str(dim)
-    if os.path.exists(path):
-        model = gensim.models.Doc2Vec.load(path)
-        # trim memory
-        model.init_sims(replace=True)
-    else:
-        # train model
-        model = gensim.models.Doc2Vec(size=dim, workers=16, iter=10, negative=20)
-        questions = list(generateLabelledSentences(df['question1'], 'question1')) + list(generateLabelledSentences(df['question2'], 'question2')) 
-        #+ list(generateLabelledSentences(dft['question1'], 't_question1'))  +  list(generateLabelledSentences(dft['question2'], 't_question2'))
-        model.build_vocab(questions)
-        model.train(questions)
-        # trim memory
-        model.init_sims(replace=True)
-        # save model
-        model.save(path)
-        del questions
-    
-    questions = list(generateLabelledSentences(dft['question1'], 'question1')) + list(generateLabelledSentences(dft['question2'], 'question2')) 
-    model.build_vocab(questions, update = True)
-    model.train(questions)
-    # creta a dict 
-    d2v = dict(zip(model.index2word, model.syn0))
-    print "Number of tokens in Word2Vec:", len(d2v.keys())
-    return d2v
 
-def transformVectors(w2v, df, dft, path):
+def transformVectors(w2v, df, dft):
 
-    from utils import TfidfEmbeddingVectorizer
-
+    path = 'models/w2v_vectors' + str(dim)
     if os.path.exists(path):
         df = pd.read_pickle(path)
     else:
         # gather all questions
         questions = list(df['question1']) + list(df['question2'])
-    
         #tokenize questions
         c = 0
         for question in tqdm(questions):
             questions[c] = list(gensim.utils.tokenize(question, deacc=True))
             c += 1
-
         me = TfidfEmbeddingVectorizer(w2v)
         me.fit(questions)
         # exctract word2vec vectors
         vecs1 = me.transform(df['question1'])
         df['q1_feats'] = list(vecs1)
-    
         vecs2 = me.transform(df['question2'])
         df['q2_feats'] = list(vecs2)
-    
         # save features
         pd.to_pickle(df, path)
 
@@ -134,7 +92,7 @@ def transformVectors(w2v, df, dft, path):
     dft['q2_feats'] = list(vecs2)
     return df, dft
                     
-def main():
+def main(w2v_d2v):
 
     df = pd.read_csv("data/quora_duplicate_questions.tsv",delimiter='\t')
     dft = pd.read_csv("test/test.csv", delimiter=',')
@@ -145,15 +103,9 @@ def main():
     dft['question1'] = dft['question1'].apply(lambda x: unicode(str(x),"utf-8"))
     dft['question2'] = dft['question2'].apply(lambda x: unicode(str(x),"utf-8"))
 
-    w2v = word2vec()
-    #w2v = doc2vec(df, dft)
-    path = 'models/w2v_vectors' + str(dim)
-    df, dft = transformVectors(w2v, df, dft, path)
+    df, dft = transformVectors(w2v_d2v, df, dft)
     
-    ##############################################################################
     # CREATE TRAIN DATA
-    ##############################################################################
-    # shuffle df
     df = df.reindex(np.random.permutation(df.index))
 
     # set number of train and test instances
@@ -183,35 +135,20 @@ def main():
     X_test[:,0,:] = q1_feats[num_train:]
     X_test[:,1,:] = q2_feats[num_train:]
     Y_test = df[num_train:]['is_duplicate'].values
-    
+
     del b
     del q1_feats
     del q2_feats
 
-    # preprocess data, mean center unit std
-    #from sklearn.preprocessing import normalize
-    #X_train_norm = np.zeros_like(X_train)
-    #X_train_norm[:,0,:] = normalize(X_train[:,0,:], axis=0)
-    #X_train_norm[:,1,:] = normalize(X_train[:,1,:], axis=0)
-    #X_test_norm = np.zeros_like(X_test)
-    #X_test_norm[:,0,:] = normalize(X_test[:,0,:], axis=0)
-    #X_test_norm[:,1,:] = normalize(X_test[:,1,:], axis=0)
-
-    ##############################################################################
-    # TRAIN MODEL
-    # 3 layers resnet (before relu) + adam + layer concat : 0.68
-    # 3 layers resnet (before relu) + adam + layer concat + 20 negative sampling: ?
-    ##############################################################################           
     # create model
     print 'siamese model'
     net = create_network(dim)
 
     # train
-    #optimizer = SGD(lr=0.01, momentum=0.8, nesterov=True, decay=0.004)
     optimizer = Adam(lr=0.001)
     net.compile(loss=contrastive_loss, optimizer=optimizer)
 
-    for epoch in range(1):
+    for epoch in range(10):
         net.fit([X_train[:,0,:], X_train[:,1,:]], Y_train,
               validation_data=([X_test[:,0,:], X_test[:,1,:]], Y_test),
               batch_size=128, nb_epoch=1, shuffle=True)
@@ -221,11 +158,7 @@ def main():
         te_acc = compute_accuracy(pred, Y_test)
     
         print('* Accuracy on test set: %0.2f%%' % (100 * te_acc))
-    
-    rows = zip(df[num_train:]['question1'], df[num_train:]['question2'], df[num_train:]['is_duplicate'], pred)
-    res = pd.DataFrame(data=rows)
-    res.to_csv(path_or_buf='test/output_test.csv', sep='\t', encoding='utf-8')
-    
+
     # format data 
     b = [a[None,:] for a in list(dft['q1_feats'].values)]
     q1_feats = np.concatenate(b, axis=0)
@@ -239,10 +172,20 @@ def main():
 
     pred = net.predict([X_test[:,0,:], X_test[:,1,:]])
     rows = zip(dft['question1'], dft['question2'], pred)
-    with open('test/output.csv','wb') as f:
+    with open('data/output.csv','wb') as f:
         writer = csv.writer(f)
         for row in rows:
             writer.writerow(row)
         
 if __name__ == "__main__":
-    main()   
+    global dim
+    numberofdim=input('number of dimentions: Recommended 300 time taken approx time taken ~2')
+    dim=numberofdim
+    methodtouse = input('press 1 for word2vec 2 for doc2vec')
+    w2v_d2v=None
+
+    if methodtouse ==1:
+        w2v_d2v = word2vec()
+    else:
+        w2v_d2v = doc2vec()
+    main(w2v_d2v)
