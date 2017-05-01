@@ -122,7 +122,7 @@ def transformVectors(w2v, df, dft, path):
     dft['q2_feats'] = list(vecs2)
     return df, dft
 
-def main():
+def main(w2v):
 
     df = pd.read_csv("data/quora_duplicate_questions.tsv",delimiter='\t')
     dft = pd.read_csv("test/test.csv", delimiter=',')
@@ -133,8 +133,6 @@ def main():
     dft['question1'] = dft['question1'].apply(lambda x: unicode(str(x),"utf-8"))
     dft['question2'] = dft['question2'].apply(lambda x: unicode(str(x),"utf-8"))
 
-    w2v = word2vec()
-    #w2v = doc2vec(df, dft)
     path = 'models/w2v_vectors' + str(dim)
     df, dft = transformVectors(w2v, df, dft, path)
 
