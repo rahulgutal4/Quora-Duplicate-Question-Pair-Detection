@@ -42,14 +42,12 @@ def graphComparison(allinputValues):
         ymax = max(t) + 0.1
         plt.ylim(0, ymax)
         print accuracy
+        plt.ylabel('predictions')
+        plt.ylabel('positive and negative')
+        plt.show()
 
-    plt.ylabel('predictions')
-    plt.ylabel('positive and negative')
-    plt.show()
-
-
-data1=pandas.read_csv('test/output_test.csv',sep="\t")
-#data2=pandas.read_csv('test/output_test.csv',sep="\t")
+data1=pandas.read_csv('test/output_test_300_itr1.csv',sep="\t")
+#data2=pandas.read_csv('test/output_test_300_itr1.csv',sep="\t")
 #data2=pandas.read_csv('data/output/output100.csv')
 #data3=pandas.read_csv('data/output/output100.csv')
 data=[data1]

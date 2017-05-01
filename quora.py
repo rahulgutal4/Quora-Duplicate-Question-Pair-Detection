@@ -26,10 +26,9 @@ def generateLabelledSentences(data, label):
         i+=1
     return labelledData
 
-def word2vec():
+def word2vec(path):
 
     model = None
-    path = 'models/w2v_model' + str(dim)
     if os.path.exists(path):
         model = gensim.models.word2vec.Word2Vec.load(path)
         # trim memory
@@ -54,10 +53,9 @@ def word2vec():
     print "Number of tokens in Word2Vec:", len(w2v.keys())
     return w2v
 
-def doc2vec(df, dft):
+def doc2vec(df, dft,path):
 
     model = None
-    path = 'models/d2v_model' + str(dim)
     if os.path.exists(path):
         model = gensim.models.Doc2Vec.load(path)
         # trim memory
@@ -122,7 +120,7 @@ def transformVectors(w2v, df, dft, path):
     dft['q2_feats'] = list(vecs2)
     return df, dft
 
-def main(w2v):
+def main(w2v,path):
 
     df = pd.read_csv("data/quora_duplicate_questions.tsv",delimiter='\t')
     dft = pd.read_csv("test/test.csv", delimiter=',')
@@ -133,7 +131,6 @@ def main(w2v):
     dft['question1'] = dft['question1'].apply(lambda x: unicode(str(x),"utf-8"))
     dft['question2'] = dft['question2'].apply(lambda x: unicode(str(x),"utf-8"))
 
-    path = 'models/w2v_vectors' + str(dim)
     df, dft = transformVectors(w2v, df, dft, path)
 
     ##############################################################################
@@ -183,7 +180,7 @@ def main(w2v):
     optimizer = Adam(lr=0.001)
     net.compile(loss=contrastive_loss, optimizer=optimizer)
 
-    for epoch in range(1):
+    for epoch in range(10):
         net.fit([X_train[:,0,:], X_train[:,1,:]], Y_train,
               validation_data=([X_test[:,0,:], X_test[:,1,:]], Y_test),
               batch_size=128, nb_epoch=1, shuffle=True)
@@ -196,7 +193,7 @@ def main(w2v):
 
     rows = zip(df[num_train:]['question1'], df[num_train:]['question2'], df[num_train:]['is_duplicate'], pred)
     res = pd.DataFrame(data=rows)
-    res.to_csv(path_or_buf='test/output_test.csv', sep='\t', encoding='utf-8')
+    res.to_csv(path_or_buf='test/output_test_300_itr1.csv', sep='\t', encoding='utf-8')
 
     # format data
     b = [a[None,:] for a in list(dft['q1_feats'].values)]
@@ -222,9 +219,11 @@ if __name__ == "__main__":
     dim=numberofdim
     methodtouse = input('method to be used : press 1 for word2vec 2 for doc2vec')
     w2v_d2v=None
-
+    path = 'models'
     if methodtouse ==1:
-        w2v_d2v = word2vec()
+        path=path+'/w2v_vectors' + str(dim)
+        w2v_d2v = word2vec(path)
     else:
-        w2v_d2v = doc2vec()
-    main(w2v_d2v)
+        path=path+'/d2v_vectors' + str(dim)
+        w2v_d2v = doc2vec(path)
+    main(w2v_d2v,path)
